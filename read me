@@ -1,0 +1,34 @@
+Copyright (c) 2025 Scottypollock. All rights reserved.
+
+MIT License
+
+Copyright (c) 2025 Scottypollock
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+provided to do so, subject to the following conditions:
+
+---
+
+# Wi-Fi Adapter Mode Tool
+
+A simple Python script to check and manage Wi-Fi adapter modes on Linux-based systems. Primarily focused on detecting and managing `wlan0` in monitor mode.
+
+## Features:
+- Check the mode of your Wi-Fi adapter
+- Switch between monitor and managed modes
+- Simple and efficient to use for experienced Linux users
+
+## Requirements:
+- Linux-based system
+- `iw` and `ip` utilities installed
+- Root (sudo) access for switching modes
+
+## Usage:
+- Run the script with root privileges:
+  
+  ```bash
+  sudo python3 your_script.py

@@ -1,0 +1,121 @@
+import subprocess
+import scapy.all as scapy
+import pyshark
+import tkinter as tk
+from tkinter import messagebox, scrolledtext
+import threading
+
+# Function to check the current Wi-Fi adapter mode
+def check_adapter_mode():
+    try:
+        result = subprocess.check_output("iw dev wlan0 info", shell=True).decode("utf-8")
+        if "mode monitor" in result:
+            return "Monitor mode"
+        else:
+            return "Manager mode"
+    except subprocess.CalledProcessError:
+        return "Error: Could not retrieve adapter information."
+
+# Function to set the adapter to monitor mode
+def set_monitor_mode():
+    try:
+        subprocess.run("sudo ip link set wlan0 down", shell=True, check=True)
+        subprocess.run("sudo iw dev wlan0 set type monitor", shell=True, check=True)
+        subprocess.run("sudo ip link set wlan0 up", shell=True, check=True)
+        messagebox.showinfo("Success", "Adapter set to Monitor Mode")
+    except subprocess.CalledProcessError:
+        messagebox.showerror("Error", "Failed to set adapter to Monitor Mode")
+
+# Function to set the adapter to manager mode
+def set_manager_mode():
+    try:
+        subprocess.run("sudo ip link set wlan0 down", shell=True, check=True)
+        subprocess.run("sudo iw dev wlan0 set type managed", shell=True, check=True)
+        subprocess.run("sudo ip link set wlan0 up", shell=True, check=True)
+        messagebox.showinfo("Success", "Adapter set to Manager Mode")
+    except subprocess.CalledProcessError:
+        messagebox.showerror("Error", "Failed to set adapter to Manager Mode")
+
+# Function to perform packet injection
+def packet_injection():
+    # Example of sending a simple ICMP echo request (ping) packet
+    try:
+        packet = scapy.IP(dst="8.8.8.8") / scapy.ICMP()
+        scapy.send(packet, verbose=True)
+        messagebox.showinfo("Packet Injection", "Packet Injected Successfully")
+    except Exception as e:
+        messagebox.showerror("Error", f"Packet Injection Failed: {str(e)}")
+
+# Start packet capture using pyshark
+def start_packet_capture():
+    capture_thread = threading.Thread(target=capture_packets)
+    capture_thread.daemon = True
+    capture_thread.start()
+
+# Capture packets in real-time and display in the GUI
+def capture_packets():
+    capture_area.config(state=tk.NORMAL)
+    capture_area.delete(1.0, tk.END)  # Clear previous capture info
+    
+    cap = pyshark.LiveCapture(interface='wlan0', display_filter='ip')  # You can adjust the display filter here (e.g., for specific protocols)
+
+    try:
+        for packet in cap.sniff_continuously():
+            if 'IP' in packet:
+                capture_area.insert(tk.END, f"Source: {packet.ip.src}, Destination: {packet.ip.dst}, Protocol: {packet.highest_layer}\n")
+                capture_area.yview(tk.END)  # Auto-scroll to the bottom
+    except Exception as e:
+        capture_area.insert(tk.END, f"Error capturing packets: {str(e)}\n")
+        capture_area.config(state=tk.DISABLED)
+
+# Stop packet capture
+def stop_packet_capture():
+    capture_area.config(state=tk.DISABLED)
+    messagebox.showinfo("Capture Stopped", "Packet capture has been stopped.")
+
+# Function to show the current adapter mode in a pop-up
+def show_mode_in_gui():
+    mode = check_adapter_mode()
+    messagebox.showinfo("Wi-Fi Adapter Mode", mode)
+
+# Create the Tkinter GUI
+def create_gui():
+    global capture_area  # Make sure the capture_area is accessible to the functions
+
+    root = tk.Tk()
+    root.title("Wi-Fi Adapter Tool with Wireshark Integration")
+
+    # Button to check current mode
+    check_mode_button = tk.Button(root, text="Check Adapter Mode", command=show_mode_in_gui)
+    check_mode_button.pack(pady=10)
+
+    # Button to set the adapter to monitor mode
+    monitor_mode_button = tk.Button(root, text="Set to Monitor Mode", command=set_monitor_mode)
+    monitor_mode_button.pack(pady=10)
+
+    # Button to set the adapter to manager mode
+    manager_mode_button = tk.Button(root, text="Set to Manager Mode", command=set_manager_mode)
+    manager_mode_button.pack(pady=10)
+
+    # Button for packet injection
+    inject_packet_button = tk.Button(root, text="Inject Packet", command=packet_injection)
+    inject_packet_button.pack(pady=10)
+
+    # Start packet capture button
+    start_capture_button = tk.Button(root, text="Start Packet Capture", command=start_packet_capture)
+    start_capture_button.pack(pady=10)
+
+    # Stop packet capture button
+    stop_capture_button = tk.Button(root, text="Stop Packet Capture", command=stop_packet_capture)
+    stop_capture_button.pack(pady=10)
+
+    # Display captured packets in a scrollable text area
+    capture_area = scrolledtext.ScrolledText(root, width=80, height=20, wrap=tk.WORD, state=tk.DISABLED)
+    capture_area.pack(pady=20)
+
+    # Start the GUI loop
+    root.mainloop()
+
+# Main entry point
+if __name__ == "__main__":
+    create_gui()
